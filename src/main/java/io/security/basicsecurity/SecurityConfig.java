@@ -10,9 +10,18 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.io.IOException;
 
 @Configuration
 @EnableWebSecurity
@@ -50,6 +59,56 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
                 .and()
                 .formLogin()
+                //로그인 페이지 설정
+                //.loginPage("/loginPage")
+                //로그인 성공 시 이동하는 url
+                .defaultSuccessUrl("/")
+                //실패 시 이동하는 url
+                .failureUrl("/login")
+                .usernameParameter("userId")
+                .passwordParameter("passwd")
+                //로그인처리 엔드포인트
+                .loginProcessingUrl("/login_proc")
+                //성공 시 동작하는 핸들러
+                .successHandler((req,resp,auth) -> {
+                            System.out.println(auth.getName());
+                            resp.sendRedirect("/");
+                        })
+                //실패 시 동작하는 핸들러
+                .failureHandler((req, resp, exception) -> {
+                    System.out.println("exception" + exception.getMessage());
+                    resp.sendRedirect("/login");
+
+                })
+                .permitAll()
+                .and()
+                .logout()
+                .logoutUrl("/logout")
+                .logoutSuccessUrl("/login")
+                .addLogoutHandler(((request, response, authentication) -> {
+                    HttpSession session = request.getSession();
+                    session.invalidate();
+                }))
+                .logoutSuccessHandler((request, response, authentication) -> response.sendRedirect("/login"))
+                .deleteCookies("remember-me")
+                .and()
+                .rememberMe()
+                // 기본 파라미터명은 remember-me
+                .rememberMeParameter("remember")
+                // default 14일
+                .tokenValiditySeconds(3600)
+                //리멤버 미 기능이 활성화되지 않아도 항상 실행 -> 기본 false
+                .alwaysRemember(true)
+                // 시스템에 있는 사용자 계정을 조회할때 사용하는 클래스
+                .and()
+                .sessionManagement()
+                .maximumSessions(1)
+                // default false -> 세션이 초과 되었을 때 현재 지금 인증을 시도하는 (로그인을 시도하는) 접속자를 실패하게 만든다
+                .maxSessionsPreventsLogin(true)
+                .and()
+                // 세션 고정 공격을 막기위해 로그인 시도 시 계속해서 새로운 세션아이디를 생성한다.
+                .sessionFixation()
+                .changeSessionId()
                 .and()
                 .build();
 
