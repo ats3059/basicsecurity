@@ -1,6 +1,7 @@
 package io.security.basicsecurity.seucrity.config;
 
 
+import io.security.basicsecurity.seucrity.service.CustomUserDetailsService;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
@@ -31,53 +33,47 @@ import java.security.cert.Extension;
 
 @EnableWebSecurity
 public class SecurityConfig {
+
     // WebSecurityConfigurerAdapter 를 상속하지 않고 SecurityFilterChain 빈을 생성해서 사용함
     // 여러개 빈을 설정할 수 있음
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
                 .authorizeRequests()
-                .antMatchers("/").permitAll()
+                .antMatchers("/","/users").permitAll()
                 .antMatchers("/mypage").hasRole("USER")
-                .antMatchers("/message").hasRole("MANAGER")
+                .antMatchers("/messages").hasRole("MANAGER")
                 .antMatchers("/config").hasRole("ADMIN")
                 .anyRequest()
                 .authenticated()
                 .and()
                 .formLogin()
+
                 .and().build();
     }
-
-    //2.7부터 유저 등록이 변경됨
-    @Bean
-    public UserDetailsManager users() {
-        String password = passwordEncoder().encode("1111");
-
-        UserDetails user = User.builder()
-                .username("user")
-                .password(password)
-                .roles("USER")
-                .build();
-
-        UserDetails sys = User.builder()
-                .username("manager")
-                .password(password)
-                .roles("MANAGER")
-                .build();
-
-        UserDetails admin = User.builder()
-                .username("admin")
-                .password(password)
-                .roles("ADMIN","USER","MANAGER")
-                .build();
-
-        return new InMemoryUserDetailsManager( user, sys, admin );
-    }
-
+    
+    //password 암호화
     @Bean
     public PasswordEncoder passwordEncoder() {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
+
+    // image, js, css 등의 정적 파일을 시큐리티가 필터하지 않도록 설정
+    // permitAll()은 security filter를 통해서 권한이 필요한지 확인을 하지만
+    // 아래의 WebSecurityCustomizer는 filter를 통해서 권한을 확인하지 않는다.
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return web -> {
+            web.ignoring().requestMatchers(PathRequest.toStaticResources().atCommonLocations());
+            web.ignoring().antMatchers("/favicon.ico", "/resources/**", "/error");
+        };
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfiguration) throws Exception {
+        return authConfiguration.getAuthenticationManager();
+    }
+
 }
 
 
@@ -92,17 +88,37 @@ public class SecurityConfig {
 
 
 
-
-
-
-
-
-
-// image, js, css 등의 정적 파일을 시큐리티가 필터하지 않도록 설정
+//2.7부터 유저 등록이 변경됨
 //    @Bean
-//    public WebSecurityCustomizer webSecurityCustomizer() {
-//        return web -> web.ignoring().requestMatchers(PathRequest.toStaticResources().atCommonLocations());
+//    public UserDetailsManager users() {
+//        String password = passwordEncoder().encode("1111");
+//
+//        UserDetails user = User.builder()
+//                .username("user")
+//                .password(password)
+//                .roles("USER")
+//                .build();
+//
+//        UserDetails sys = User.builder()
+//                .username("manager")
+//                .password(password)
+//                .roles("MANAGER")
+//                .build();
+//
+//        UserDetails admin = User.builder()
+//                .username("admin")
+//                .password(password)
+//                .roles("ADMIN","USER","MANAGER")
+//                .build();
+//
+//        return new InMemoryUserDetailsManager( user, sys, admin );
 //    }
+
+
+
+
+
+
 
 // AuthenticationManager 빈 참조 및 사용자정의 AuthenticationProvider 객체를 설정해야 할 경우
 //    @Bean
