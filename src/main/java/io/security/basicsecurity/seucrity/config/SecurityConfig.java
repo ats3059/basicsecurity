@@ -1,6 +1,7 @@
 package io.security.basicsecurity.seucrity.config;
 
 
+import io.security.basicsecurity.seucrity.handler.CustomAccessDeniedHandler;
 import io.security.basicsecurity.seucrity.service.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
@@ -23,7 +24,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 
 import javax.servlet.ServletException;
@@ -40,13 +43,17 @@ public class SecurityConfig {
 
     private final AuthenticationDetailsSource<HttpServletRequest, WebAuthenticationDetails> authenticationDetailsSource;
 
+    private final AuthenticationSuccessHandler customAuthenticationSuccessHandler;
+
+    private final AuthenticationFailureHandler customAuthenticationFailureHandler;
+
     // WebSecurityConfigurerAdapter 를 상속하지 않고 SecurityFilterChain 빈을 생성해서 사용함
     // 여러개 빈을 설정할 수 있음
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
                 .authorizeRequests()
-                .antMatchers("/","/users","user/login/**").permitAll()
+                .antMatchers("/","/users","user/login/**","/login*").permitAll()
                 .antMatchers("/mypage").hasRole("USER")
                 .antMatchers("/messages").hasRole("MANAGER")
                 .antMatchers("/config").hasRole("ADMIN")
@@ -59,6 +66,11 @@ public class SecurityConfig {
                 .defaultSuccessUrl("/")
                 .permitAll()
                 .authenticationDetailsSource(authenticationDetailsSource)
+                .successHandler(customAuthenticationSuccessHandler)
+                .failureHandler(customAuthenticationFailureHandler)
+                .and()
+                .exceptionHandling()
+                .accessDeniedHandler(customAccessDeniedHandler())
                 .and().build();
     }
     
@@ -84,6 +96,12 @@ public class SecurityConfig {
         return authConfiguration.getAuthenticationManager();
     }
 
+    @Bean
+    public AccessDeniedHandler customAccessDeniedHandler() {
+        CustomAccessDeniedHandler customAccessDeniedHandler = new CustomAccessDeniedHandler();
+        customAccessDeniedHandler.setErrorPage("/denied");
+        return customAccessDeniedHandler;
+    }
 }
 
 
