@@ -37,12 +37,6 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
             throw new BadCredentialsException("BadCredentialsException");
         }
 
-        FormWebAuthenticationDetails formWebAuthenticationDetails = (FormWebAuthenticationDetails) authentication.getDetails();
-        String secretKey = formWebAuthenticationDetails.getSecretKey();
-        if (secretKey == null || !"secret".equals(secretKey)) {
-            throw new InsufficientAuthenticationException("InsufficientAuthenticationException");
-        }
-
         return new UsernamePasswordAuthenticationToken(accountContext.getAccount(),null,accountContext.getAuthorities());
     }
 
