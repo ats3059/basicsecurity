@@ -55,7 +55,7 @@ public class AjaxSecurityConfig{
 
         http.addFilterBefore(ajaxLoginProcessingFilter(), UsernamePasswordAuthenticationFilter.class);
 
-        http.csrf().disable();
+//        http.csrf().disable();
 
         http
                 .exceptionHandling()
